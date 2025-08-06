@@ -64,24 +64,38 @@ for row in revenue_table.find_all("tr")[1:]:
 gme_revenue.tail()
 
 
-# Question 5:  Plot Tesla Stock Graph
-import matplotlib.pyplot as plt
+# Question 5 - Tesla Stock and Revenue Dashboard
+def make_graph(stock_data, revenue_data, stock_name):
+    import matplotlib.pyplot as plt
 
-# Plot Tesla stock price over time
-plt.figure(figsize=(10,5))
-plt.plot(tesla_data.index, tesla_data['Close'])
-plt.title("Tesla Stock Price Over Time")
-plt.xlabel("Date")
-plt.ylabel("Closing Price (USD)")
-plt.grid(True)
-plt.show()
+    # Reset index if needed
+    if 'Date' not in stock_data.columns:
+        stock_data.reset_index(inplace=True)
 
+    # Convert revenue dates to datetime
+    revenue_data['Date'] = pd.to_datetime(revenue_data['Date'])
+    revenue_data['Revenue'] = revenue_data['Revenue'].str.replace(",", "").str.replace("$", "").astype(float)
 
-# Question 6:Plot GameStop Stock Price Over Time
-plt.figure(figsize=(10,5))
-plt.plot(gme_data.index, gme_data['Close'])
-plt.title("GameStop Stock Price Over Time")
-plt.xlabel("Date")
-plt.ylabel("Closing Price (USD)")
-plt.grid(True)
-plt.show()
+    # Plotting
+    fig, ax1 = plt.subplots(figsize=(14, 6))
+
+    ax1.plot(stock_data['Date'], stock_data['Close'], label='Stock Price', color='blue')
+    ax1.set_xlabel('Date')
+    ax1.set_ylabel('Stock Price (USD)', color='blue')
+    ax1.tick_params(axis='y', labelcolor='blue')
+
+    ax2 = ax1.twinx()
+    ax2.plot(revenue_data['Date'], revenue_data['Revenue'], label='Revenue', color='green')
+    ax2.set_ylabel('Revenue (USD)', color='green')
+    ax2.tick_params(axis='y', labelcolor='green')
+
+    plt.title(f"{stock_name} Stock Price and Revenue")
+    fig.tight_layout()
+    plt.show()
+
+# Question 5
+make_graph(tesla_data, tesla_revenue, "Tesla")
+
+# Question 6 - GameStop Stock and Revenue Dashboard
+
+make_graph(gme_data, gme_revenue, "GameStop")
