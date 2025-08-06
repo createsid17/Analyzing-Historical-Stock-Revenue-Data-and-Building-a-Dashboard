@@ -1,100 +1,87 @@
 
 # Question 1: Extract Tesla stock data using yfinance
+!pip install yfinance
 import yfinance as yf
 import pandas as pd
-import matplotlib.pyplot as plt
-
-# Download Tesla stock data
-tesla_data = yf.download('TSLA', start='2010-01-01', end='2023-12-31')
-tesla_data.reset_index(inplace=True)
-tesla_data.to_csv("tesla_stock_data.csv", index=False)
-
-# Question 2: Extract Tesla revenue data using web scraping
 import requests
 from bs4 import BeautifulSoup
+tesla = yf.Ticker("TSLA")
+tesla_data = tesla.history(period="max")
+tesla_data.head()
 
+# Question 2: Extract Tesla revenue data using web scraping
+# Send request with headers to bypass 403
 url = "https://www.macrotrends.net/stocks/charts/TSLA/tesla/revenue"
-headers = {"User-Agent": "Mozilla/5.0"}
+headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0 Safari/537.36"
+}
 response = requests.get(url, headers=headers)
 soup = BeautifulSoup(response.text, "html.parser")
-
 tables = soup.find_all("table")
 for table in tables:
     if "Tesla Quarterly Revenue" in table.text:
-        df_list = pd.read_html(str(table))
-        tesla_revenue = df_list[0]
+        revenue_table = table
         break
+# Extract revenue data into DataFrame        
+tesla_revenue = pd.DataFrame(columns=["Date", "Revenue"])
+for row in revenue_table.find_all("tr")[1:]:
+    cols = row.find_all("td")
+    if len(cols) == 2:
+        date = cols[0].text.strip()
+        revenue = cols[1].text.strip().replace("$", "").replace(",", "")
+        if revenue != "":
+            tesla_revenue = pd.concat([tesla_revenue, pd.DataFrame([[date, revenue]], columns=["Date", "Revenue"])], ignore_index=True)
 
-# Clean revenue table
-tesla_revenue = tesla_revenue.dropna()
-tesla_revenue.columns = ["Date", "Revenue"]
-tesla_revenue["Revenue"] = tesla_revenue["Revenue"].str.replace("$", "").str.replace(",", "")
-tesla_revenue = tesla_revenue[tesla_revenue["Revenue"] != ""]
-tesla_revenue["Revenue"] = tesla_revenue["Revenue"].astype(float)
-tesla_revenue["Date"] = pd.to_datetime(tesla_revenue["Date"])
-tesla_revenue.to_csv("tesla_revenue.csv", index=False)
+tesla_revenue.tail()
 
-# Question 3: Plot Tesla stock price and revenue over time
-plt.figure(figsize=(12, 5))
-plt.plot(tesla_data["Date"], tesla_data["Close"], label="Stock Price")
+# Question 3: Extracting Gamestop Stock Data using yfinance
+gme = yf.Ticker("GME")
+gme_data = gme.history(period="max")
+gme_data.reset_index(inplace=True)
+gme_data.head()
+# Question 4: Webscraping GME revenue data from Macrotrends
+url = "https://www.macrotrends.net/stocks/charts/GME/gamestop/revenue"
+headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0 Safari/537.36"
+}
+response = requests.get(url, headers=headers)
+soup = BeautifulSoup(response.text, "html.parser")
+tables = soup.find_all("table")
+for table in tables:
+    if "GameStop Quarterly Revenue" in table.text:
+        revenue_table = table
+        break
+gme_revenue = pd.DataFrame(columns=["Date", "Revenue"])
+for row in revenue_table.find_all("tr")[1:]:
+    cols = row.find_all("td")
+    if len(cols) == 2:
+        date = cols[0].text.strip()
+        revenue = cols[1].text.strip().replace("$", "").replace(",", "")
+        if revenue != "":
+            gme_revenue = pd.concat([gme_revenue, pd.DataFrame([[date, revenue]], columns=["Date", "Revenue"])], ignore_index=True)
+
+# Show last 5 rows
+gme_revenue.tail()
+
+
+# Question 5:  Plot Tesla Stock Graph
+import matplotlib.pyplot as plt
+
+# Plot Tesla stock price over time
+plt.figure(figsize=(10,5))
+plt.plot(tesla_data.index, tesla_data['Close'])
 plt.title("Tesla Stock Price Over Time")
 plt.xlabel("Date")
-plt.ylabel("Stock Price (USD)")
-plt.legend()
-plt.grid()
+plt.ylabel("Closing Price (USD)")
+plt.grid(True)
 plt.show()
 
-plt.figure(figsize=(12, 5))
-plt.plot(tesla_revenue["Date"], tesla_revenue["Revenue"], label="Revenue", color="green")
-plt.title("Tesla Quarterly Revenue Over Time")
-plt.xlabel("Date")
-plt.ylabel("Revenue (USD)")
-plt.legend()
-plt.grid()
-plt.show()
 
-# Question 4: Extract GameStop stock data using yfinance
-gme_data = yf.download("GME", start="2010-01-01", end="2023-12-31")
-gme_data.reset_index(inplace=True)
-gme_data.to_csv("gme_stock_data.csv", index=False)
-
-# Question 5: Plot GameStop stock price
-plt.figure(figsize=(12, 5))
-plt.plot(gme_data["Date"], gme_data["Close"], label="Stock Price", color="orange")
+# Question 6:Plot GameStop Stock Price Over Time
+plt.figure(figsize=(10,5))
+plt.plot(gme_data.index, gme_data['Close'])
 plt.title("GameStop Stock Price Over Time")
 plt.xlabel("Date")
-plt.ylabel("Stock Price (USD)")
-plt.legend()
-plt.grid()
-plt.show()
-
-# Question 6: Extract GameStop revenue data using web scraping
-url_gme = "https://www.macrotrends.net/stocks/charts/GME/gamestop/revenue"
-response_gme = requests.get(url_gme, headers=headers)
-soup_gme = BeautifulSoup(response_gme.text, "html.parser")
-
-tables_gme = soup_gme.find_all("table")
-for table in tables_gme:
-    if "GameStop Quarterly Revenue" in table.text:
-        df_gme = pd.read_html(str(table))
-        gme_revenue = df_gme[0]
-        break
-
-# Clean GME revenue table
-gme_revenue = gme_revenue.dropna()
-gme_revenue.columns = ["Date", "Revenue"]
-gme_revenue["Revenue"] = gme_revenue["Revenue"].str.replace("$", "").str.replace(",", "")
-gme_revenue = gme_revenue[gme_revenue["Revenue"] != ""]
-gme_revenue["Revenue"] = gme_revenue["Revenue"].astype(float)
-gme_revenue["Date"] = pd.to_datetime(gme_revenue["Date"])
-gme_revenue.to_csv("gme_revenue.csv", index=False)
-
-# Plot GameStop revenue
-plt.figure(figsize=(12, 5))
-plt.plot(gme_revenue["Date"], gme_revenue["Revenue"], label="Revenue", color="purple")
-plt.title("GameStop Quarterly Revenue Over Time")
-plt.xlabel("Date")
-plt.ylabel("Revenue (USD)")
-plt.legend()
-plt.grid()
+plt.ylabel("Closing Price (USD)")
+plt.grid(True)
 plt.show()
